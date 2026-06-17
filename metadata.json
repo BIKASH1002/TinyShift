@@ -1,0 +1,6 @@
+{
+  "name": "DayTag",
+  "description": "DayTag is a daily routine refresh and one-tap habit tracker leveraging ambient custom tags (NFC and QR codes) and AI-driven behavior recommendations.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
