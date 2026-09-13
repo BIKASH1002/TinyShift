@@ -20,7 +20,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
   onRefreshClick,
 }) => {
   const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  
+
   // Circumference for circular progress stroke
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
@@ -30,24 +30,27 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
     <div className="bg-white rounded-3xl p-6 shadow-sm border border-surface-container relative overflow-hidden flex items-center justify-between gap-4">
       {/* Dynamic background blur accent */}
       <div className="absolute top-0 right-0 -mr-6 -mt-6 w-24 h-24 bg-primary-container/10 rounded-full blur-2xl pointer-events-none" />
-      
+
       <div className="flex-1 space-y-2 z-10">
         <div className="flex items-center gap-1.5 text-primary text-xs font-semibold uppercase tracking-wider">
           <Sparkles className="w-3.5 h-3.5" />
           <span>Today's Ritual</span>
         </div>
-        
+
         <h3 className="font-headline-lg-mobile text-xl text-on-surface tracking-tight font-bold">
           {percentage === 100 ? 'Fully Refreshed!' : 'Step-by-step progress'}
         </h3>
-        
+
         <p className="text-on-surface-variant font-body-md text-sm">
-          You completed <span className="font-bold text-primary">{completedCount}</span> of <span className="font-bold">{totalCount}</span> routine habits.
+          You completed <span className="font-bold text-primary">{completedCount}</span> of{' '}
+          <span className="font-bold">{totalCount}</span> routine habits.
         </p>
 
         <div className="flex items-center gap-1 text-xs text-tertiary font-medium pt-1.5">
           <Award className="w-4 h-4 text-tertiary-container fill-tertiary" />
-          <span>Active Streak: <strong>{streak} Days</strong></span>
+          <span>
+            Active Streak: <strong>{streak} Days</strong>
+          </span>
         </div>
       </div>
 

@@ -19,7 +19,8 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
   onNotForMe,
 }) => {
   // Safe icon lookup
-  const IconComponent = (Lucide[suggestion.icon as keyof typeof Lucide] || Lucide.Sparkles) as React.ComponentType<{ className?: string }>;
+  const IconComponent = (Lucide[suggestion.icon as keyof typeof Lucide] ||
+    Lucide.Sparkles) as React.ComponentType<{ className?: string }>;
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-surface-container overflow-hidden transition-all duration-300 hover:shadow-md animate-fade-in">
@@ -34,7 +35,9 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
           <div className="absolute bottom-4 left-4 flex items-center gap-2 text-white font-semibold text-sm">
-            {IconComponent && <IconComponent className="w-4 h-4 text-primary-container fill-primary-container" />}
+            {IconComponent && (
+              <IconComponent className="w-4 h-4 text-primary-container fill-primary-container" />
+            )}
             <span className="tracking-wide uppercase text-xs">{suggestion.category}</span>
           </div>
         </div>
@@ -52,7 +55,9 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
               <span className="text-[10px] uppercase font-bold tracking-wider text-tertiary px-2 py-0.5 bg-tertiary-container/10 rounded-full">
                 {suggestion.category}
               </span>
-              <h3 className="font-headline-md text-base text-on-surface font-semibold mt-0.5">{suggestion.title}</h3>
+              <h3 className="font-headline-md text-base text-on-surface font-semibold mt-0.5">
+                {suggestion.title}
+              </h3>
             </div>
           </div>
         )}

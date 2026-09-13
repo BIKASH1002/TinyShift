@@ -3,10 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { Sparkles, Settings, HelpCircle, Check, Info } from 'lucide-react';
-import { RefreshSuggestion, Habit } from '../types';
+import React, { useEffect, useState } from 'react';
+import { Sparkles, Settings, Check, Info } from 'lucide-react';
+import { RefreshSuggestion } from '../types';
 import { SuggestionCard } from '../components/SuggestionCard';
+import {
+  generateRoutineSuggestions,
+  getTodaySuggestions,
+  updateSuggestionStatus,
+} from '../lib/aiSuggestionService';
 
 interface RefreshScreenProps {
   suggestions: RefreshSuggestion[];
@@ -19,32 +24,78 @@ export const RefreshScreen: React.FC<RefreshScreenProps> = ({
 }) => {
   const [suggestionList, setSuggestionList] = useState<RefreshSuggestion[]>(initialSuggestions);
   const [notification, setNotification] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleTryToday = (sug: RefreshSuggestion) => {
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSavedSuggestions() {
+      const result = await getTodaySuggestions();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (result.success && result.data && result.data.length > 0) {
+        setSuggestionList(result.data);
+      }
+
+      setIsLoading(false);
+    }
+
+    loadSavedSuggestions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const showNotification = (message: string, duration = 2500) => {
+    setNotification(message);
+    setTimeout(() => {
+      setNotification(null);
+    }, duration);
+  };
+
+  const handleGenerateSuggestions = async () => {
+    setIsGenerating(true);
+    const result = await generateRoutineSuggestions();
+    setIsGenerating(false);
+
+    if (!result.success || !result.data) {
+      showNotification(result.error || 'Could not generate suggestions right now.');
+      return;
+    }
+
+    setSuggestionList(result.data);
+    showNotification(
+      result.usedFallback
+        ? 'AI was unavailable, so TinyShift prepared some simple ideas.'
+        : 'Fresh routine suggestions are ready.',
+    );
+  };
+
+  const handleTryToday = async (sug: RefreshSuggestion) => {
+    await updateSuggestionStatus(sug.id, 'accepted');
+
     // Add custom suggested habit
     onAddCustomSuggestedHabit(
       sug.title,
       sug.category === 'Atmosphere' ? 'Mood' : sug.category === 'Sunlight' ? 'Health' : 'Focus',
-      sug.reason
+      sug.reason,
     );
 
-    // Trigger celebration banner
-    setNotification(`"${sug.title}" added to your Habits today!`);
-    
+    showNotification(`"${sug.title}" added to your Habits today!`, 2800);
+
     // Smoothly remove item from recommendations carousel representation
     setSuggestionList((prev) => prev.filter((item) => item.id !== sug.id));
-
-    setTimeout(() => {
-      setNotification(null);
-    }, 2800);
   };
 
-  const handleNotForMe = (id: string, name: string) => {
+  const handleNotForMe = async (id: string, name: string) => {
+    await updateSuggestionStatus(id, 'rejected');
     setSuggestionList((prev) => prev.filter((item) => item.id !== id));
-    setNotification(`Archived recommendation: "${name}"`);
-    setTimeout(() => {
-      setNotification(null);
-    }, 2000);
+    showNotification(`Archived recommendation: "${name}"`, 2000);
   };
 
   return (
@@ -68,7 +119,7 @@ export const RefreshScreen: React.FC<RefreshScreenProps> = ({
               referrerPolicy="no-referrer"
             />
           </div>
-          <h1 className="font-display font-extrabold text-lg text-primary">DayTag</h1>
+          <h1 className="font-display font-extrabold text-lg text-primary">TinyShift</h1>
         </div>
         <button className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface">
           <Settings className="w-5 h-5" />
@@ -81,13 +132,25 @@ export const RefreshScreen: React.FC<RefreshScreenProps> = ({
           Refresh Suggestions
         </h1>
         <p className="text-xs font-body-md text-on-surface-variant font-medium leading-relaxed">
-          Small changes designed by DayTag AI to break weekly monotony.
+          Small changes designed by TinyShift AI to break weekly monotony.
         </p>
+        <button
+          onClick={handleGenerateSuggestions}
+          disabled={isGenerating}
+          className="mt-3 h-11 px-4 bg-primary text-on-primary rounded-2xl text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-60 active:scale-95 transition-transform"
+        >
+          <Sparkles className="w-4 h-4" />
+          {isGenerating ? 'Generating...' : 'Generate AI Suggestions'}
+        </button>
       </section>
 
       {/* Suggestion Lists list */}
       <div className="space-y-5 max-w-sm mx-auto w-full">
-        {suggestionList.length > 0 ? (
+        {isLoading ? (
+          <div className="bg-white rounded-3xl p-6 text-center border border-surface-container py-10">
+            <p className="text-xs text-on-surface-variant font-bold">Loading suggestions...</p>
+          </div>
+        ) : suggestionList.length > 0 ? (
           suggestionList.map((sug) => (
             <SuggestionCard
               key={sug.id}
@@ -117,9 +180,12 @@ export const RefreshScreen: React.FC<RefreshScreenProps> = ({
             <Info className="w-5 h-5" />
           </div>
           <div className="space-y-1 z-10">
-            <h3 className="text-xxs tracking-wider uppercase font-extrabold text-secondary">Did you know?</h3>
+            <h3 className="text-xxs tracking-wider uppercase font-extrabold text-secondary">
+              Did you know?
+            </h3>
             <p className="font-body-md text-xs leading-relaxed text-on-secondary-container/90">
-              Small novelties in your household trigger key dopamine releases, restoring high focus levels and reducing routine fatigue.
+              Small novelties in your household trigger key dopamine releases, restoring high focus
+              levels and reducing routine fatigue.
             </p>
           </div>
         </div>

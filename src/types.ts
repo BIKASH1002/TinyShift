@@ -1,35 +1,26 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 export type HabitCategory = 'Health' | 'Focus' | 'Mood' | 'Learning' | 'Movement';
-
 export type HabitFrequency = 'Daily' | 'Weekdays' | 'Custom';
-
+export type HabitStatus = 'pending' | 'done' | 'skipped';
+export type CompletionMode = 'normal' | 'minimum';
+export type RescueReason = 'low_energy' | 'no_time' | 'away' | 'forgot' | 'routine_changed';
 export interface Habit {
   id: string;
   name: string;
   category: HabitCategory;
   frequency: HabitFrequency;
+  anchor: string;
+  normalVersion: string;
+  minimumVersion: string;
+  motivation: string;
   streak: number;
-  weeklyAvg: number; // e.g. 85 for 85%
-  linkedObject: string | null; // e.g. 'Water Bottle'
-  linkedObjectType?: 'NFC' | 'QR' | null;
+  weeklyAvg: number;
+  statusToday: HabitStatus;
+  completionMode?: CompletionMode | null;
   completedToday: boolean;
-  icon: string; // Lucide icon string representation
-  weeklyOverview: {
-    M: boolean;
-    T: boolean;
-    W: boolean;
-    T_day: boolean; // avoiding clash with TypeScript key words
-    F: boolean;
-    S: boolean;
-    S_day: boolean;
-  };
+  icon: string;
+  weeklyOverview: Record<'M' | 'T' | 'W' | 'T_day' | 'F' | 'S' | 'S_day', boolean>;
   aiSuggestion?: string;
 }
-
 export interface RefreshSuggestion {
   id: string;
   title: string;
@@ -39,17 +30,6 @@ export interface RefreshSuggestion {
   icon: string;
   isCustom?: boolean;
 }
-
-export interface LinkedObject {
-  id: string;
-  name: string;
-  habitId: string;
-  habitName: string;
-  lastScannedText: string;
-  icon: string;
-  type: 'NFC' | 'QR';
-}
-
 export interface WeeklyInsight {
   id: string;
   title: string;
@@ -58,11 +38,10 @@ export interface WeeklyInsight {
   icon: string;
   colorClass: string;
 }
-
 export interface UserProfile {
   name: string;
   avatarUrl: string;
   routineStreak: number;
-  connectedTagsCount: number;
-  efficiency: number;
+  rescuedHabitsCount: number;
+  consistency: number;
 }

@@ -1,0 +1,69 @@
+/* Keep the interactive example's layout together with its component. */
+.welcome-example .welcome-energy {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  padding: 5px;
+  margin: 18px 0 16px;
+  border-radius: 10px;
+  background: #f3f1ed;
+}
+.welcome-example .welcome-energy > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 6px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #626c65;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+.welcome-example .welcome-energy > button > svg {
+  flex: 0 0 14px;
+}
+.welcome-example .welcome-energy > button > span {
+  min-width: 0;
+}
+.welcome-example .welcome-energy small {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.welcome-example .welcome-energy > button:hover {
+  background: #ffffff80;
+}
+.welcome-example .welcome-energy > button[aria-pressed='true'] {
+  background: #fff;
+  color: #293831;
+  border-color: #e8e6df;
+  box-shadow: 0 2px 5px #2938310d;
+  font-weight: 600;
+}
+.welcome-example #welcome-habit-preview {
+  margin-top: 0;
+}
+.welcome-example #welcome-habit-preview > div {
+  min-height: 124px;
+  padding: 16px;
+  background: #fffdf6;
+  border-color: #eadcae;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+.welcome-example #welcome-habit-preview > .welcome-tiny-step {
+  background: #f4f8f1;
+  border-color: #d7e2cc;
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome-example #welcome-habit-preview > div {
+    transition: none;
+  }
+}

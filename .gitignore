@@ -6,3 +6,50 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Local environments, caches and generated test output
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.vite/
+*.tsbuildinfo
+playwright-report/
+test-results/
+blob-report/
+.coverage
+htmlcov/
+
+# Local deployment state (keep functions and SQL in version control)
+.vercel/
+**/supabase/.temp/
+**/supabase/.branches/
+
+# Personal editor and assistant settings
+.idea/
+.vscode/
+.agents/
+.codex/
+.claude/
+.aistudio/
+AGENTS.md
+CLAUDE.md
+*.code-workspace
+
+# OS, private credentials and local backups
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+*.pem
+*.key
+*.p12
+*.pfx
+*.dump
+*.backup
+backups/

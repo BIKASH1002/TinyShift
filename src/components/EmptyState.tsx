@@ -26,7 +26,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   const IconComponent = Lucide[icon] as React.ComponentType<{ className?: string }>;
 
   return (
-    <div id={id} className="flex flex-col items-center justify-center py-12 px-6 text-center bg-white rounded-3xl border border-surface-container shadow-sm max-w-sm mx-auto">
+    <div
+      id={id}
+      className="flex flex-col items-center justify-center py-12 px-6 text-center bg-white rounded-3xl border border-surface-container shadow-sm max-w-sm mx-auto"
+    >
       <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-primary-container mb-4">
         {IconComponent && <IconComponent className="w-8 h-8 text-primary" />}
       </div>
