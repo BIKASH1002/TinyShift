@@ -230,4 +230,8 @@ select
 \i tests/profile.sql
 \i tests/aiAdjustments.sql
 \i tests/scheduledRoutines.sql
+\i backend/sql/011_rescue_coach.sql
+\i backend/sql/011_rescue_coach.sql
+\i tests/rescueCoach.sql
 \i tests/accountControls.sql
+\i tests/pushReminders.sql

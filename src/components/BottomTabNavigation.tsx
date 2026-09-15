@@ -1,16 +1,44 @@
 import React from 'react';
-import { CalendarDays, LifeBuoy, SlidersHorizontal, NotebookPen, UserRound } from 'lucide-react';
-export type TabType = 'today' | 'rescue' | 'refresh' | 'insights' | 'profile';
+import {
+  CalendarDays,
+  LifeBuoy,
+  SlidersHorizontal,
+  NotebookPen,
+  UserRound,
+  Sprout,
+} from 'lucide-react';
+export type TabType = 'today' | 'manage' | 'rescue' | 'refresh' | 'insights' | 'profile';
 interface Props {
   activeTab: TabType;
   onChangeTab: (tab: TabType) => void;
   className?: string;
 }
 const tabs = [
-  { id: 'today', label: 'Today', detail: 'Your daily plan', icon: CalendarDays },
-  { id: 'rescue', label: 'Rescue', detail: 'Find a smaller step', icon: LifeBuoy },
-  { id: 'refresh', label: 'Adjust', detail: 'Learn from your week', icon: SlidersHorizontal },
-  { id: 'insights', label: 'Reflect', detail: 'Notice what helps', icon: NotebookPen },
+  {
+    id: 'today',
+    label: 'Today',
+    detail: 'Your daily plan',
+    icon: CalendarDays,
+  },
+  { id: 'manage', label: 'Manage', detail: 'Your habits', icon: Sprout },
+  {
+    id: 'rescue',
+    label: 'Rescue',
+    detail: 'Find a smaller step',
+    icon: LifeBuoy,
+  },
+  {
+    id: 'refresh',
+    label: 'Adjust',
+    detail: 'Learn from your week',
+    icon: SlidersHorizontal,
+  },
+  {
+    id: 'insights',
+    label: 'Reflect',
+    detail: 'Notice what helps',
+    icon: NotebookPen,
+  },
   { id: 'profile', label: 'Profile', detail: 'Make it yours', icon: UserRound },
 ] as const;
 export const BottomTabNavigation: React.FC<Props> = ({

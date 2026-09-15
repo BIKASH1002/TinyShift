@@ -1,4 +1,77 @@
+# Rescue Coach acceptance checks
+
+Deploy SQL 011 and create-rescue-step before testing against a hosted project.
+
+1. From Today, open Rescue Coach in one click; verify the selected habit and change it if needed.
+2. Enter "At the airport without my book, very tired." Generate remains disabled until consent.
+3. Generate a short, feasible step. Generation alone must not alter Today, the habit, or logs.
+4. Do the step and mark it done. Today shows the actual suggested action as Rescue completed;
+   weekly totals count it as a tiny completion. Undo returns the habit to pending.
+5. Rescue a skipped habit; the completion clears its skip reason. A habit already completed
+   elsewhere must not have that completion overwritten. Double-clicking Done must not duplicate logs.
+6. Change the sentence or selected habit: discard the old preview. Leave during generation:
+   the response must not appear for another habit or account.
+7. Try "My knee hurts" for a movement habit, driving, unsafe settings, and a harmful goal.
+   Expect a supportive pause rather than an exercise prescription. A pause has no Done button.
+8. Decline an idea, retry after the shared cooldown, or use the saved tiny version.
+   Provider failures, quota exhaustion, offline requests and missing deployment must show a
+   recoverable error; no completion is fabricated.
+9. Change the habit elsewhere, or cross midnight/change device time zone before saving.
+   The stale preview must not save against a different habit version or day.
+10. Check keyboard focus, screen-reader status, long text and 320px/390px widths.
+11. Export a disposable account after a rescue. It includes the saved action but not the
+    context sentence. Deleting the account removes its rescue log with all other activity.
+
 # TinyShift manual test guide
+
+## Compact Today dashboard
+
+1. Add at least eight daily habits. Today initially shows four To do rows.
+   Use Show remaining to reveal more, then Show fewer to collapse the list.
+2. Expand a row with its chevron. Check its cue and alternative, then collapse
+   it. Expanding another row should close the first.
+3. Press Done. Check the progress count increases, the row moves to Completed,
+   and the confirmation offers Undo last completion. Undo must restore the row.
+4. Try Do the tiny version and I did the full version. Check the saved action
+   in Completed matches the version you actually chose.
+5. Switch To do, Completed and All. Counts must match today's scheduled habits.
+   The collapsed Completed today section also provides access to undo.
+6. Use Rescue / skip from an expanded row. A skipped habit remains in To do
+   with its reason, and can be completed later or have its skip undone.
+7. Open Adjust pace and change energy/time. Suggested steps should update
+   without changing saved habit definitions.
+8. Try saving while offline. No false completion should appear. Reconnect,
+   retry and verify only one record is saved even if you click quickly.
+9. Check keyboard access, 320px/390px mobile layouts, long habit names, a day
+   with no scheduled habits, and a day with every habit completed.
+
+## Manage habits and the habit tree
+
+Habit creation, editing and deletion now live in the Manage tab. Today retains
+daily check-ins and undo. In older scenarios below, use Manage instead of the
+old Today management disclosure.
+
+1. Open Manage with zero, one and several active habits. Each habit should have
+   one leaf, including habits not scheduled today.
+2. Create a habit. After it saves, return to Manage and watch its leaf grow.
+   Cancel a new habit or try saving while offline: no leaf should be added.
+3. Edit a habit's name. Its existing leaf should keep its position. Switch tabs
+   and reload the page; remaining leaves should not shuffle or grow again.
+4. Hover a habit row, then hover, tap or keyboard-focus a leaf. Check the matching
+   highlight and habit name. Search should filter the list without hiding leaves.
+5. Cancel deletion, then try deleting while offline. The habit and leaf must stay.
+   Reconnect and confirm deletion: its leaf should drift down and fade, while
+   the remaining leaves stay put. Past records remain available.
+6. Delete two different habits quickly, then create another. Check for duplicate
+   leaves or overlapping slot reuse. Check undo of today's record in Manage.
+7. Try 30 habits, long names and mobile widths of 320 and 390 pixels. All six
+   navigation tabs and every habit should remain accessible without sideways scrolling.
+8. Enable reduced motion on your device. Growing and falling movement should
+   be replaced with a short fade.
+
+Leaf positions are stored in this browser separately for each account, using
+habit IDs only. Clearing browser storage or using another device can change
+positions; it does not change saved habits.
 
 ## Current interface checks
 
@@ -14,7 +87,7 @@ return after confirming you no longer need the unsaved values.
 3. Add/change/remove a profile photo, then use the tick to save. Navigate away and back.
 4. Sign out from the desktop sidebar or mobile header. Confirm account deletion is
    isolated below Account and privacy and still requires password and typed confirmation.
-5. Check all five tabs at desktop and mobile widths, including keyboard navigation,
+5. Check all six tabs at desktop and mobile widths, including keyboard navigation,
    tooltips, reduced motion, long names and slow/offline connections.
 6. Visit each tab, return to it and check cached content appears promptly. Change a
    habit, complete it and undo it; affected screens must show the updated data.

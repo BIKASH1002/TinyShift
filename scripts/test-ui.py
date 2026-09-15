@@ -52,6 +52,8 @@ state = {
     "logs": [],
     "context": None,
     "fail": False,
+    "coach_kind": "step",
+    "coach_failure": False,
     "profile": {"full_name": "Demo Reader", "updated_at": habit["updated_at"], "avatar_url": None},
 }
 requests = []
@@ -105,6 +107,26 @@ def mock(route):
         result = [state["profile"]]
     elif path.endswith("/weekly_reflections") and request.method == "POST":
         result = [{**payload, "id": "fixture-reflection"}]
+    elif path.endswith("/create-rescue-step"):
+        if state["coach_failure"]:
+            route.fulfill(status=502, content_type="application/json", body=json.dumps({"error": "The coach is unavailable. Try again."}))
+            return
+        result = {
+            "habitId": payload["habitId"], "habitUpdatedAt": habit["updated_at"],
+            "day": payload["day"], "timeZone": payload["timeZone"],
+            "suggestion": {
+                "kind": state["coach_kind"],
+                "action": "Recall one idea from your last chapter." if state["coach_kind"] == "step" else "Take a pause and return when you feel ready.",
+                "reason": "A quiet mental step needs no book.",
+                "seconds": 30 if state["coach_kind"] == "step" else 0,
+            },
+        }
+    elif path.endswith("/rpc/complete_rescue_step"):
+        result = {"id": "fixture-rescue-log", "habit_id": payload["p_habit_id"],
+            "user_id": USER_ID, "log_date": payload["p_day"], "status": "done",
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "completion_method": "minimum", "skip_reason": None, "rescue_action": payload["p_action"]}
+        state["logs"] = [result]
     elif path.endswith("/create-habit-draft"):
         result = {
             "draft": {
@@ -169,22 +191,62 @@ with sync_playwright() as p:
     )
     page.reload()
     expect(page.get_by_role("heading", name="A little progress, your way.")).to_be_visible()
-    expect(page.get_by_role("button", name="Done: normal version")).to_be_visible()
+    expect(page.get_by_role("button", name="Complete Read a little each day (usual version)", exact=True)).to_be_visible()
     layout(page, "today-mobile")
     assert requests.count(("GET", "/rest/v1/habits")) == 1, "Duplicate initial habit reads"
     assert requests.count(("GET", "/rest/v1/habit_logs")) == 1, "Duplicate initial activity reads"
     page.set_viewport_size({"width": 1440, "height": 1000})
     layout(page, "today-desktop")
-    page.get_by_text("What fits today?", exact=True).click()
+    page.get_by_role("button", name="Too tired or stuck? Open Rescue Coach", exact=True).click()
+    coach = page.get_by_role("region", name="Rescue Coach", exact=True)
+    expect(coach).to_be_visible()
+    context_input = coach.get_by_label("What is making this habit difficult right now?")
+    context_input.fill("At the airport, no book and very tired.")
+    generate = coach.get_by_role("button", name="Find my rescue step", exact=True)
+    expect(generate).to_be_disabled()
+    coach.get_by_role("checkbox").check()
+    state["coach_kind"] = "pause"
+    generate.click()
+    expect(coach.get_by_text("Room to pause", exact=True)).to_be_visible()
+    expect(coach.get_by_role("button", name="Done - I did this rescue step", exact=True)).to_have_count(0)
+    assert not state["logs"], "Generating a pause must not log activity"
+    coach.get_by_text("Change your situation or try another idea", exact=True).click()
+    context_input.fill("No book with me; I can recall a little of yesterday's reading.")
+    expect(coach.get_by_text("Room to pause", exact=True)).to_have_count(0)
+    state["coach_failure"] = True
+    generate.click()
+    expect(coach.get_by_role("alert")).to_contain_text("unavailable")
+    expect(page.get_by_role("button", name="I completed the tiny version", exact=True)).to_be_enabled()
+    state["coach_failure"] = False
+    state["coach_kind"] = "step"
+    generate.click()
+    expect(coach.get_by_role("heading", name="Recall one idea from your last chapter.")).to_be_focused()
+    assert not state["logs"], "Generating a step must not log activity"
+    for width in [320, 390, 1440]:
+        page.set_viewport_size({"width": width, "height": 900})
+        layout(page, f"rescue-coach-{width}")
+    coach.get_by_role("button", name="Done - I did this rescue step", exact=True).click()
+    expect(page.get_by_text("Rescue completed. That counts as a tiny win. You can undo it on Today.", exact=True)).to_be_visible()
+    assert state["logs"][0]["completion_method"] == "minimum"
+    assert state["logs"][0]["rescue_action"] == "Recall one idea from your last chapter."
+    page.get_by_role("navigation").get_by_role("button", name=re.compile("^Today")).click()
+    page.get_by_role("button", name="Completed 1", exact=True).click()
+    expect(page.get_by_text("Recall one idea from your last chapter.", exact=True)).to_be_visible()
+    expect(page.get_by_text("Rescue completed", exact=True)).to_be_visible()
+    page.get_by_role("button", name="Undo completion for Read a little each day", exact=True).click()
+    page.get_by_role("button", name="To do 1", exact=True).click()
+    expect(page.get_by_role("button", name="Complete Read a little each day (usual version)", exact=True)).to_be_visible()
+    page.get_by_text("Adjust pace", exact=True).click()
     page.get_by_role("combobox", name="Energy", exact=True).click()
     page.get_by_role("option", name="Low", exact=True).click()
     page.get_by_role("button", name="Update my plan", exact=True).click()
-    expect(page.get_by_role("button", name="Done: tiny version")).to_be_visible()
-    page.get_by_role("button", name="Done: tiny version").click()
-    expect(page.get_by_role("button", name="Undo completion")).to_be_visible()
+    expect(page.get_by_role("button", name="Complete Read a little each day (tiny version)", exact=True)).to_be_visible()
+    page.get_by_role("button", name="Complete Read a little each day (tiny version)", exact=True).click()
+    expect(page.get_by_role("button", name="Undo last completion", exact=True)).to_be_visible()
     layout(page, "today-complete")
-    page.get_by_role("button", name="Undo completion").click()
-    expect(page.get_by_role("button", name="Done: tiny version")).to_be_visible()
+    page.get_by_role("button", name="Undo last completion", exact=True).click()
+    expect(page.get_by_role("button", name="Complete Read a little each day (tiny version)", exact=True)).to_be_visible()
+    page.get_by_role("button", name="Manage habits", exact=True).click()
     page.get_by_role("button", name="New habit", exact=True).click()
     page.get_by_text("Need a starting point? Design it with AI", exact=True).click()
     page.get_by_label("Your goal and what makes it difficult").fill(
@@ -244,8 +306,7 @@ with sync_playwright() as p:
         page.screenshot(path=f"{output}/dropdown-{width}.png")
         category.press("Escape")
     page.get_by_role("button", name="Create habit", exact=True).click()
-    expect(page.get_by_role("heading", name="A little progress, your way.")).to_be_visible()
-    page.get_by_text("Manage habits", exact=False).click()
+    expect(page.get_by_role("heading", name="Small habits, room to grow.")).to_be_visible()
     edit = page.get_by_role("button", name="Edit Read a little each day", exact=True)
     edit.hover()
     expect(page.get_by_role("tooltip", name="Edit", exact=True)).to_be_visible()
@@ -259,6 +320,8 @@ with sync_playwright() as p:
     expect(page.get_by_role("heading", name="Edit habit", exact=True)).to_be_visible()
     page.get_by_label("Habit", exact=True).fill("Reading " + "a very long habit name " * 12)
     page.get_by_role("button", name="Save changes", exact=True).click()
+    expect(page.get_by_role("heading", name="Small habits, room to grow.")).to_be_visible()
+    page.get_by_role("button", name=re.compile("^Today")).click()
     expect(page.get_by_role("heading", name="A little progress, your way.")).to_be_visible()
     layout(page, "today-long-name-320")
     for tab, heading in [

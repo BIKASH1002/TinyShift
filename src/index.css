@@ -233,8 +233,8 @@
   font-size: 8px;
   line-height: 1.4;
   letter-spacing: 0.55px;
-  color: #727b72;
-  font-weight: 600;
+  color: #526257;
+  font-weight: 700;
   opacity: 1;
   transform: translateY(0);
   transition:
@@ -396,14 +396,14 @@
 .editorial-heading-copy h1 {
   font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
   font-size: clamp(2rem, 3.6vw, 2.8rem);
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: -0.025em;
   line-height: 1.18;
   text-wrap: balance;
 }
 .editorial-heading-copy h1 em {
   color: var(--color-primary);
-  font-weight: 400;
+  font-weight: inherit;
   font-style: italic;
 }
 .heading-intro-pending {
@@ -1525,6 +1525,16 @@ progress::-webkit-progress-value {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@media (min-width: 701px) {
+  .app-shell--signed-in .rail-footer::before {
+    content: '';
+    display: block;
+    height: 3px;
+    margin: 0 8px 8px;
+    background: var(--line);
   }
 }
 

@@ -126,17 +126,13 @@ export function Button({
   );
 }
 const shownHeadingIntros = new Set<string>();
-function HeadingCopy({
-  title,
-  description,
-  introKey,
-  editorial,
-}: {
+const HeadingCopy: React.FC<{
   title: string;
+  accent?: string;
   description?: string;
   introKey?: string;
   editorial?: boolean;
-}) {
+}> = ({ title, accent, description, introKey, editorial }) => {
   const [phase, setPhase] = useState(() =>
     introKey && !shownHeadingIntros.has(introKey) ? 'pending' : 'done',
   );
@@ -172,10 +168,11 @@ function HeadingCopy({
       onAnimationEnd={() => setPhase('done')}
     >
       <h1 tabIndex={-1}>
-        {introKey === 'today-welcome' && title.endsWith('your way.') ? (
+        {accent && title.includes(accent) ? (
           <>
-            {title.slice(0, -'your way.'.length)}
-            <em>your way.</em>
+            {title.slice(0, title.indexOf(accent))}
+            <em>{accent}</em>
+            {title.slice(title.indexOf(accent) + accent.length)}
           </>
         ) : (
           title
@@ -184,10 +181,11 @@ function HeadingCopy({
       {description && <p className="page-description">{description}</p>}
     </div>
   );
-}
+};
 export function PageHeader({
   eyebrow,
   title,
+  accent,
   description,
   action,
   introKey,
@@ -195,6 +193,7 @@ export function PageHeader({
 }: {
   eyebrow?: string;
   title: string;
+  accent?: string;
   description?: string;
   action?: React.ReactNode;
   introKey?: string;
@@ -207,6 +206,7 @@ export function PageHeader({
         <HeadingCopy
           key={introKey || 'plain'}
           title={title}
+          accent={accent}
           description={description}
           introKey={introKey}
           editorial={editorial}

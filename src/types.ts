@@ -1,4 +1,4 @@
-export type HabitCategory = 'Health' | 'Focus' | 'Mood' | 'Learning' | 'Movement';
+export type HabitCategory = 'Health' | 'Focus' | 'Mood' | 'Learning' | 'Movement' | 'Other';
 export type HabitFrequency = 'Daily' | 'Weekdays' | 'Custom';
 export type HabitStatus = 'pending' | 'done' | 'skipped';
 export type CompletionMode = 'normal' | 'minimum';

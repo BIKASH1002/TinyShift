@@ -24,7 +24,9 @@ export const AddHabitScreen: React.FC<Props> = ({ onAddHabit, onClose, initialDr
       : { name: '', anchor: '', normalVersion: '', minimumVersion: '', motivation: '' },
   );
   const [category, setCategory] = useState<HabitCategory>(initialDraft?.category || 'Health');
-  const [frequency, setFrequency] = useState<HabitFrequency>(initialDraft?.frequency || 'Daily');
+  const [frequency, setFrequency] = useState<HabitFrequency>(
+    initialDraft?.frequency || 'Daily',
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [goal, setGoal] = useState('');
@@ -62,12 +64,13 @@ export const AddHabitScreen: React.FC<Props> = ({ onAddHabit, onClose, initialDr
         onCancel={() => setConfirmClose(false)}
         onConfirm={onClose}
       >
-        Your habit changes have not been saved. Keep editing, or discard them and return to Today.
+        Your habit changes have not been saved. Keep editing, or discard them and return to
+        Today.
       </ConfirmDialog>
       <div>
         <Button variant="quiet" disabled={busy || aiBusy} onClick={requestClose}>
           <ArrowLeft size={16} aria-hidden="true" />
-          Back to Today
+          Back
         </Button>
       </div>
       <PageHeader
@@ -106,8 +109,8 @@ export const AddHabitScreen: React.FC<Props> = ({ onAddHabit, onClose, initialDr
                 checked={consent}
                 onChange={(e) => setConsent(e.target.checked)}
               />
-              Send this description to AI to suggest a habit. Your existing habits and reflections
-              are not sent.
+              Send this description to AI to suggest a habit. Your existing habits and
+              reflections are not sent.
             </label>
             <button
               type="button"
@@ -131,7 +134,8 @@ export const AddHabitScreen: React.FC<Props> = ({ onAddHabit, onClose, initialDr
               {aiBusy ? 'Preparing draft...' : 'Generate AI draft'}
             </button>
             <p className="text-xs">
-              Optional. You can always fill in the form yourself. Generating does not save a habit.
+              Optional. You can always fill in the form yourself. Generating does not save a
+              habit.
             </p>
             <p className="text-xs">
               You can use AI up to 10 times a day. Please wait 15 seconds between requests.
@@ -153,7 +157,8 @@ export const AddHabitScreen: React.FC<Props> = ({ onAddHabit, onClose, initialDr
                   {candidate.category} / {candidate.frequency}
                 </p>
                 <p className="text-xs">
-                  Using this draft replaces the form below. You can edit every field before saving.
+                  Using this draft replaces the form below. You can edit every field before
+                  saving.
                 </p>
                 <div className="action-row">
                   <button
@@ -242,7 +247,7 @@ export const AddHabitScreen: React.FC<Props> = ({ onAddHabit, onClose, initialDr
             disabled={busy || aiBusy}
             value={category}
             onChange={(value) => setCategory(value as HabitCategory)}
-            options={['Health', 'Focus', 'Mood', 'Learning', 'Movement'].map((value) => ({
+            options={['Health', 'Focus', 'Mood', 'Learning', 'Movement', 'Other'].map((value) => ({
               value,
               label: value,
             }))}

@@ -1,5 +1,8 @@
+import { reconcilePushAccount } from './lib/pushService';
 import { userMessage } from './lib/userMessage';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { HabitManagerScreen } from './screens/HabitManagerScreen';
+import { clearLeafSlots } from './lib/habitLeafSlots';
 import { LogOut } from 'lucide-react';
 import { Brand, LoadingState } from './components/ui';
 import { Session } from '@supabase/supabase-js';
@@ -29,7 +32,13 @@ export default function App() {
       : 'onboarding',
   );
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabType>('today');
+  const [newHabitId, setNewHabitId] = useState<string | null>(null);
+  const growthShown = useCallback(() => setNewHabitId(null), []);
+  const reminderParam = new URLSearchParams(window.location.search).get('reminder');
+  const initialReminder = ['today', 'rescue', 'refresh'].includes(reminderParam || '')
+    ? reminderParam as TabType : null;
+  const [tab, setTab] = useState<TabType>(initialReminder || 'today');
+  const [reminderLink, setReminderLink] = useState<TabType | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -38,8 +47,24 @@ export default function App() {
   const [signingOut, setSigningOut] = useState(false);
   async function signOut() {
     const result = await logoutUser();
-    if (!result.success) throw new Error(result.error || 'Could not sign out. Please try again.');
+    if (!result.success)
+      throw new Error(result.error || 'Could not sign out. Please try again.');
   }
+  useEffect(() => {
+    if (checking) return;
+    void reconcilePushAccount(session?.user.id || null).catch(() => {
+      setError('Could not turn off this device’s push reminders. Check notification settings.');
+    });
+  }, [checking, session?.user.id]);
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const receive = (event: MessageEvent) => {
+      if (event.data?.type === 'tinyshift-reminder' &&
+          ['today', 'rescue', 'refresh'].includes(event.data.tab)) setReminderLink(event.data.tab);
+    };
+    navigator.serviceWorker.addEventListener('message', receive);
+    return () => navigator.serviceWorker.removeEventListener('message', receive);
+  }, []);
   const mainRef = useRef<HTMLElement>(null);
   const navigationReady = useRef(false);
   useEffect(() => {
@@ -73,6 +98,7 @@ export default function App() {
       setSession(next);
       if (event === 'PASSWORD_RECOVERY') setScreen('recovery');
       if (!next) {
+        setNewHabitId(null);
         setHabits([]);
         setScreen((current) =>
           current === 'deleted' || current === 'recovery' ? current : 'onboarding',
@@ -120,8 +146,11 @@ export default function App() {
     });
     if (!result.success) throw new Error(result.error);
     setScreen('main');
-    setTab('today');
-    load().catch(() => setError('Habit created, but the summary could not refresh. Reload Today.'));
+    setNewHabitId(result.data?.id || null);
+    setTab('manage');
+    load().catch(() =>
+      setError('Habit created, but the summary could not refresh. Reload Today.'),
+    );
   }
   const rescue = (id: string) => {
     setRescueId(id);
@@ -133,7 +162,9 @@ export default function App() {
     content = (
       <div className="p-6 space-y-4">
         <h1 className="text-2xl font-bold">Account deleted</h1>
-        <p>Your login and saved TinyShift data were removed. This cannot be undone in the app.</p>
+        <p>
+          Your login and saved TinyShift data were removed. This cannot be undone in the app.
+        </p>
         <button
           className="underline"
           onClick={() => window.location.replace(import.meta.env.BASE_URL)}
@@ -161,7 +192,7 @@ export default function App() {
       <LoginScreen
         onLoginSuccess={() => {
           setScreen('main');
-          setTab('today');
+          setTab(initialReminder || 'today');
         }}
       />
     );
@@ -175,7 +206,7 @@ export default function App() {
         onClose={() => setScreen('main')}
         onSaved={() => {
           setScreen('main');
-          setTab('today');
+          setTab('manage');
           load().catch(() =>
             setError('Habit saved, but the summary could not refresh. Reload Today.'),
           );
@@ -190,21 +221,34 @@ export default function App() {
         onChanged={load}
         onRescue={rescue}
         onAdd={() => setScreen('add')}
+        onManage={() => setTab('manage')}
+        onWeekly={() => setTab('refresh')}
+      />
+    );
+  else if (tab === 'manage')
+    content = (
+      <HabitManagerScreen
+        key={session.user.id}
+        accountId={session.user.id}
+        onAdd={() => setScreen('add')}
         onEdit={(id) => {
           setEditingId(id);
           setScreen('edit');
         }}
-        onWeekly={() => setTab('refresh')}
+        onChanged={load}
+        newHabitId={newHabitId}
+        onGrowthShown={growthShown}
       />
     );
   else if (tab === 'rescue')
     content = (
       <RescueScreen
-        key={rescueId}
+        key={session.user.id + (rescueId || '')}
         habits={habits}
         initialHabitId={rescueId}
         onUseMinimum={(id) => complete(id, 'minimum')}
         onSkip={skip}
+        onCoachCompleted={load}
       />
     );
   else if (tab === 'insights') content = <InsightsScreen key={session.user.id} insights={[]} />;
@@ -213,6 +257,7 @@ export default function App() {
       <ProfileScreen
         key={session.user.id}
         onDeleted={() => {
+          clearLeafSlots(session.user.id);
           setCacheAccount(null);
           setScreen('deleted');
           setSession(null);
@@ -290,6 +335,17 @@ export default function App() {
       )}
       <main id="main-content" ref={mainRef} tabIndex={-1} className="app-main">
         {error && <p role="alert">{error}</p>}
+        {reminderLink && session && screen === 'main' && (
+          <div className="surface space-y-2" role="status">
+            <p>Your reminder is ready. Opening it may discard unsaved edits on this screen.</p>
+            <div className="action-row">
+              <button className="button button--secondary" onClick={() => {
+                setTab(reminderLink); setRescueId(null); setReminderLink(null);
+              }}>Open {reminderLink === 'refresh' ? 'Adjust' : reminderLink === 'rescue' ? 'Rescue' : 'Today'}</button>
+              <button className="button button--quiet" onClick={() => setReminderLink(null)}>Dismiss</button>
+            </div>
+          </div>
+        )}
         {content}
       </main>
       {showLanding && (

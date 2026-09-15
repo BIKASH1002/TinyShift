@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
     // Only these public values may be included in the browser bundle.
     envPrefix: [],
     define: {
+      'import.meta.env.EXPO_PUBLIC_WEB_PUSH_KEY': JSON.stringify(env.EXPO_PUBLIC_WEB_PUSH_KEY || ''),
       'import.meta.env.EXPO_PUBLIC_SUPABASE_URL': JSON.stringify(env.EXPO_PUBLIC_SUPABASE_URL),
       'import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(
         env.EXPO_PUBLIC_SUPABASE_ANON_KEY,

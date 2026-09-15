@@ -36,8 +36,16 @@ test('Monday boundaries and calendar dates survive month boundaries', () => {
   assert.equal(localDate(new Date(2026, 8, 5, 0, 15)), '2026-09-05');
 });
 test('only scheduled dates count; missing logs are unknown', () => {
-  const [p] = analyze([{ ...habit, frequency: 'Weekdays' }], logs(), '2026-08-24', '2026-08-30');
-  assert.deepEqual([p.opportunities, p.done, p.minimum, p.skipped, p.unlogged], [5, 3, 3, 0, 2]);
+  const [p] = analyze(
+    [{ ...habit, frequency: 'Weekdays' }],
+    logs(),
+    '2026-08-24',
+    '2026-08-30',
+  );
+  assert.deepEqual(
+    [p.opportunities, p.done, p.minimum, p.skipped, p.unlogged],
+    [5, 3, 3, 0, 2],
+  );
 });
 test('a new habit has no opportunities before creation', () => {
   const [p] = analyze(
@@ -137,6 +145,7 @@ test('AI and manual drafts share strict validation', () => {
     frequency: 'Daily',
   };
   assert.equal(validateDraft(draft).name, 'Read');
+  assert.equal(validateDraft({ ...draft, category: 'Other' }).category, 'Other');
   for (const invalid of [
     null,
     [],
@@ -144,7 +153,7 @@ test('AI and manual drafts share strict validation', () => {
     { ...draft, name: ' ' },
     { ...draft, anchor: 42 },
     { ...draft, minimumVersion: 'x'.repeat(501) },
-    { ...draft, category: 'Other' },
+    { ...draft, category: 'Unsupported' },
     { ...draft, frequency: 'Custom' },
   ]) {
     assert.throws(() => validateDraft(invalid));
@@ -196,4 +205,12 @@ test('AI adjustments require evidence, supported fields and bounded changed text
     { ...candidate, rationale: 'x'.repeat(701) },
   ])
     assert.throws(() => validateAdjustment(invalid, habit, evidence));
+});
+
+test('rescue completions contribute to tiny completion totals', () => {
+  const records = logs().map((log) => ({ ...log, rescue_action: 'Recall one idea.' }));
+  const [pattern] = analyze([habit], records, '2026-08-24', '2026-08-30');
+  assert.equal(pattern.done, 3);
+  assert.equal(pattern.minimum, 3);
+  assert.equal(pattern.skipped, 0);
 });

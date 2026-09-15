@@ -77,6 +77,7 @@ export const InsightsScreen: React.FC<{ insights: WeeklyInsight[] }> = () => {
         editorial
         eyebrow="Pause and notice"
         title="Every week teaches you something."
+        accent="teaches you"
         description="Look back with curiosity. Keep what helps and make room to try something different."
       />
       {error && (

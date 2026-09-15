@@ -16,18 +16,11 @@ import {
   saveContext,
   weeklyProposals,
 } from '../lib/routineService';
-import { deleteHabit, markHabitDone, undoHabitLog } from '../lib/habitService';
+import { TodayChecklist } from '../components/TodayChecklist';
 import { AIAdjustmentPanel } from '../components/AIAdjustmentPanel';
 import { ReminderInbox } from '../components/ReminderInbox';
-import {
-  Button,
-  IconButton,
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  displayDate,
-} from '../components/ui';
-import { Check, Plus, RotateCcw, Pencil, Trash2 } from 'lucide-react';
+import { Button, EmptyState, LoadingState, PageHeader, displayDate } from '../components/ui';
+import { LifeBuoy, Plus, Sprout } from 'lucide-react';
 import { SelectField } from '../components/SelectField';
 import { peekCache } from '../lib/dataCache';
 
@@ -36,7 +29,7 @@ interface Props {
   onChanged: () => Promise<void>;
   onRescue: (id: string) => void;
   onAdd: () => void;
-  onEdit: (id: string) => void;
+  onManage: () => void;
   onWeekly: () => void;
 }
 type Data = Awaited<ReturnType<typeof loadRoutineData>>;
@@ -50,7 +43,7 @@ export const AdaptiveScreen: React.FC<Props> = ({
   onChanged,
   onRescue,
   onAdd,
-  onEdit,
+  onManage,
   onWeekly,
 }) => {
   const [data, setData] = useState<Data | null>(
@@ -60,15 +53,19 @@ export const AdaptiveScreen: React.FC<Props> = ({
     () => peekCache<SavedProposal[]>('proposals:' + localDate()) || [],
   );
   const [context, setContext] = useState<Context>(
-    () => peekCache<Data>('routine:' + localDate())?.context || { energy: 'steady', minutes: 30 },
+    () =>
+      peekCache<Data>('routine:' + localDate())?.context || {
+        energy: 'steady',
+        minutes: 30,
+      },
   );
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(() => !peekCache('routine:' + localDate()));
   const [preparing, setPreparing] = useState(false);
   const [day, setDay] = useState(localDate());
-  const [deleteId, setDeleteId] = useState<string | null>(null);
   const contextDirty = useRef(false);
+  const actionPending = useRef(false);
   const loadVersion = useRef(0);
   const refreshSignal = useRefreshSignal(!busy && !contextDirty.current);
 
@@ -92,7 +89,8 @@ export const AdaptiveScreen: React.FC<Props> = ({
       .then(async (next) => {
         if (!current()) return;
         setData(next);
-        if (!contextDirty.current) setContext(next.context || { energy: 'steady', minutes: 30 });
+        if (!contextDirty.current)
+          setContext(next.context || { energy: 'steady', minutes: 30 });
         setBusy(false);
         if (view === 'weekly') {
           const proposals = await weeklyProposals(next, day);
@@ -122,6 +120,8 @@ export const AdaptiveScreen: React.FC<Props> = ({
     };
   }, []);
   async function act(action: () => Promise<void>, success: string) {
+    if (actionPending.current) return false;
+    actionPending.current = true;
     loadVersion.current++;
     setPreparing(false);
     setBusy(true);
@@ -131,20 +131,34 @@ export const AdaptiveScreen: React.FC<Props> = ({
       await action();
       await Promise.all([refresh(), onChanged()]);
       setNotice(success);
+      return true;
     } catch (e) {
       setError(message(e));
+      return false;
     } finally {
+      actionPending.current = false;
       setBusy(false);
     }
   }
   const plan = data
-    ? dailyPlan(data.habits, data.recent, data.context || { energy: 'steady', minutes: 30 }, day)
+    ? dailyPlan(
+        data.habits,
+        data.recent,
+        data.context || { energy: 'steady', minutes: 30 },
+        day,
+      )
     : [];
   const completed = plan.filter((item) =>
     data?.logs.some(
       (l) => l.habit_id === item.habit.id && l.log_date === day && l.status === 'done',
     ),
   ).length;
+  const todo = plan.filter(
+    (item) =>
+      !data?.logs.some(
+        (l) => l.habit_id === item.habit.id && l.log_date === day && l.status === 'done',
+      ),
+  );
   return (
     <div className="page page--tab">
       <PageHeader
@@ -152,6 +166,7 @@ export const AdaptiveScreen: React.FC<Props> = ({
         eyebrow={view === 'today' ? displayDate(day) : 'Learn from your week'}
         introKey={view === 'today' ? 'today-welcome' : undefined}
         title={view === 'today' ? 'A little progress, your way.' : 'Find what works for you.'}
+        accent={view === 'today' ? 'your way.' : 'works for you.'}
         description={
           view === 'today'
             ? 'Make room for the habits that matter. A tiny step counts, too.'
@@ -159,9 +174,9 @@ export const AdaptiveScreen: React.FC<Props> = ({
         }
         action={
           view === 'today' && (
-            <Button variant="secondary" disabled={busy} onClick={onAdd}>
-              <Plus size={17} aria-hidden="true" />
-              New habit
+            <Button variant="secondary" disabled={busy} onClick={onManage}>
+              <Sprout size={17} aria-hidden="true" />
+              Manage habits
             </Button>
           )
         }
@@ -178,7 +193,7 @@ export const AdaptiveScreen: React.FC<Props> = ({
           </button>
         </div>
       )}
-      {notice && (
+      {notice && !(view === 'today' && notice === 'Completion saved.') && (
         <p role="status" className="bg-emerald-50 text-emerald-800 p-3 rounded-xl text-sm">
           {notice}
         </p>
@@ -188,10 +203,19 @@ export const AdaptiveScreen: React.FC<Props> = ({
       {view === 'today' && (
         <>
           <ReminderInbox onWeekly={onWeekly} />
-          <details className="daily-context">
+          <details className="daily-context today-overview">
             <summary>
+              <span className="today-progress">
+                <strong>
+                  {completed} of {plan.length} completed
+                </strong>
+                <progress
+                  aria-label="Habits completed today"
+                  value={completed}
+                  max={Math.max(1, plan.length)}
+                />
+              </span>
               <span>
-                <span className="context-title">What fits today?</span>
                 <span className="context-summary">
                   {data?.context?.energy || 'steady'} energy · {data?.context?.minutes ?? 30}{' '}
                   minutes available
@@ -212,7 +236,10 @@ export const AdaptiveScreen: React.FC<Props> = ({
                   value={context.energy}
                   onChange={(value) => {
                     contextDirty.current = true;
-                    setContext({ ...context, energy: value as Context['energy'] });
+                    setContext({
+                      ...context,
+                      energy: value as Context['energy'],
+                    });
                   }}
                   options={[
                     { value: 'low', label: 'Low' },
@@ -238,130 +265,45 @@ export const AdaptiveScreen: React.FC<Props> = ({
                 </button>
               </div>
               <p className="help-text">
-                This adjusts today’s suggested steps, not your saved habits. Time is a guide, not a
-                timer.
+                This adjusts today’s suggested steps, not your saved habits. Time is a guide,
+                not a timer.
               </p>
             </form>
           </details>
-          {!busy && data && plan.length > 0 && (
-            <div className="daily-progress">
-              <div>
-                <h2>
-                  {completed === plan.length ? 'You showed up today.' : 'Your next small steps'}
-                </h2>
-                <p>
-                  {completed} of {plan.length} completed
-                  {completed === plan.length
-                    ? ' · Take a moment to enjoy it.'
-                    : ' · Go at your own pace.'}
-                </p>
-              </div>
-              <progress aria-label="Habits completed today" value={completed} max={plan.length} />
-            </div>
-          )}
-          <div className="habit-list">
-            {plan.map((item) => {
-              const log = data?.logs.find(
-                (l) => l.habit_id === item.habit.id && l.log_date === day,
-              );
-              return (
-                <article
-                  key={item.habit.id}
-                  className={`habit-item ${log?.status === 'done' ? 'habit-item--done' : ''}`}
+          {data && todo.length > 0 && (
+            <details className="rescue-entry-panel">
+              <summary>
+                <LifeBuoy className="rescue-entry-icon" size={22} aria-hidden="true" />
+                <span className="rescue-entry-copy">Too tired or stuck?</span>
+                <button
+                  type="button"
+                  className="button button--primary rescue-entry-button"
+                  disabled={busy}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onRescue(todo[0].habit.id);
+                  }}
                 >
-                  <div className="habit-top">
-                    <div>
-                      <h2>{item.habit.name}</h2>
-                      <p className="habit-cue">{item.habit.anchor}</p>
-                    </div>
-                    <span className="pill">
-                      {log?.status === 'done' ? (
-                        <>
-                          <Check size={13} aria-hidden="true" />
-                          Done
-                        </>
-                      ) : item.mode === 'minimum' ? (
-                        'Tiny step'
-                      ) : (
-                        'Usual step'
-                      )}
-                    </span>
-                  </div>
-                  <p className="habit-action">
-                    {log?.status === 'done'
-                      ? log.completion_method === 'minimum'
-                        ? item.habit.minimum_version
-                        : item.habit.normal_version
-                      : item.action}
-                  </p>
-                  <p className="help-text">
-                    {log?.status === 'done' ? 'A step taken. That counts.' : item.reason}
-                  </p>
-                  <div className="habit-actions">
-                    {log && (
-                      <button
-                        disabled={busy}
-                        className={secondary}
-                        onClick={() =>
-                          act(
-                            () => undoHabitLog(log),
-                            'Record undone. Your habit is pending again.',
-                          )
-                        }
-                      >
-                        {log.status === 'done' ? 'Undo completion' : 'Undo skip'}
-                        <RotateCcw size={14} aria-hidden="true" />
-                      </button>
-                    )}
-                    {log && (
-                      <p className="text-sm font-bold">
-                        {log.status === 'done'
-                          ? `Completed (${log.completion_method === 'minimum' ? 'tiny version' : 'normal version'})`
-                          : `Skipped: ${reasonLabels[log.skip_reason || ''] || 'reason not recorded'}. You can still return to it today.`}
-                      </p>
-                    )}
-                    {log?.status !== 'done' && (
-                      <>
-                        <button
-                          disabled={busy}
-                          className={primary}
-                          onClick={() =>
-                            act(async () => {
-                              const result = await markHabitDone(item.habit.id, item.mode);
-                              if (!result.success) throw new Error(result.error);
-                            }, 'Completion saved.')
-                          }
-                        >
-                          Done: {item.mode === 'minimum' ? 'tiny version' : 'normal version'}
-                        </button>
-                        {item.mode === 'minimum' && (
-                          <button
-                            disabled={busy}
-                            className={secondary}
-                            onClick={() =>
-                              act(async () => {
-                                const result = await markHabitDone(item.habit.id, 'normal');
-                                if (!result.success) throw new Error(result.error);
-                              }, 'Normal completion saved.')
-                            }
-                          >
-                            I did the full version
-                          </button>
-                        )}
-                        <button
-                          disabled={busy}
-                          className={secondary}
-                          onClick={() => onRescue(item.habit.id)}
-                        >
-                          Rescue / skip
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  Open Rescue Coach
+                </button>
+              </summary>
+              <p>
+                Rescue Coach helps you find a smaller, realistic next step when your usual plan
+                feels like too much.
+              </p>
+            </details>
+          )}
+          {data && plan.length > 0 && (
+            <TodayChecklist
+              key={day}
+              plan={plan}
+              logs={data.logs}
+              day={day}
+              busy={busy}
+              act={act}
+              onRescue={onRescue}
+            />
+          )}
           {!busy && data && plan.length === 0 && (
             <EmptyState
               title={
@@ -379,92 +321,13 @@ export const AdaptiveScreen: React.FC<Props> = ({
                 : 'Choose something that matters to you. Give it a usual step and a tiny version for busy days.'}
             </EmptyState>
           )}
-          {data && data.habits.length > 0 && (
-            <details className="manage-list">
-              <summary>
-                Manage habits <span className="help-text">({data.habits.length})</span>
-              </summary>
-              <p className="text-xs">
-                All active habits, including those not scheduled today. Deleting removes a habit
-                from your routine; past logs and reflections are kept.
-              </p>
-              {data.habits.map((habit) => (
-                <div key={habit.id} className="border-t pt-3 space-y-2">
-                  <div className="manage-row">
-                    <strong>{habit.name}</strong>
-                    <div className="action-row">
-                      <IconButton
-                        disabled={busy}
-                        label="Edit"
-                        accessibleLabel={`Edit ${habit.name}`}
-                        onClick={() => onEdit(habit.id)}
-                      >
-                        <Pencil size={18} aria-hidden="true" />
-                      </IconButton>
-                      <IconButton
-                        disabled={busy}
-                        label="Delete"
-                        accessibleLabel={`Delete ${habit.name}`}
-                        danger
-                        onClick={() => setDeleteId(habit.id)}
-                      >
-                        <Trash2 size={18} aria-hidden="true" />
-                      </IconButton>
-                    </div>
-                  </div>
-                  {!plan.some((item) => item.habit.id === habit.id) &&
-                    data.logs
-                      .filter((log) => log.habit_id === habit.id && log.log_date === day)
-                      .map((log) => (
-                        <button
-                          key={log.id}
-                          disabled={busy}
-                          className={secondary}
-                          onClick={() => act(() => undoHabitLog(log), 'Today record undone.')}
-                        >
-                          Undo today's record
-                        </button>
-                      ))}
-                  {deleteId === habit.id && (
-                    <div className="bg-red-50 rounded-xl p-3 space-y-3">
-                      <p className="text-sm">
-                        Delete {habit.name} from your routine? It will no longer appear in Today,
-                        Rescue, or Adjust. Your past records will remain.
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          disabled={busy}
-                          className="button button--danger"
-                          onClick={() =>
-                            act(async () => {
-                              const result = await deleteHabit(habit.id);
-                              if (!result.success) throw new Error(result.error);
-                              setDeleteId(null);
-                            }, 'Habit removed from your routine. Past records were kept.')
-                          }
-                        >
-                          Confirm delete
-                        </button>
-                        <button
-                          disabled={busy}
-                          className={secondary}
-                          onClick={() => setDeleteId(null)}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </details>
-          )}
         </>
       )}
       {view === 'weekly' && data && (
         <>
           <p className="help-text">
-            Small adjustments, based on last week. Nothing changes until you accept a suggestion.
+            Small adjustments, based on last week. Nothing changes until you accept a
+            suggestion.
           </p>
           {!data.habits.length && (
             <EmptyState
@@ -493,8 +356,8 @@ export const AdaptiveScreen: React.FC<Props> = ({
                 </div>
               </div>
               <p className="text-xs">
-                Out of {p.opportunities} scheduled days. Missing logs do not tell us whether you did
-                the habit.
+                Out of {p.opportunities} scheduled days. Missing logs do not tell us whether you
+                did the habit.
               </p>
               {Object.entries(p.reasons).map(([key, count]) => (
                 <p className="text-xs" key={key}>
@@ -523,7 +386,9 @@ export const AdaptiveScreen: React.FC<Props> = ({
             />
           )}
           <h2 className="text-lg font-bold">Suggestions from your activity</h2>
-          {preparing && !proposals.length && <p role="status">Checking for useful adjustments…</p>}
+          {preparing && !proposals.length && (
+            <p role="status">Checking for useful adjustments…</p>
+          )}
           {!preparing && proposals.length === 0 && (
             <p className="text-sm">
               No changes suggested. Your recorded week has not shown a clear enough pattern yet.

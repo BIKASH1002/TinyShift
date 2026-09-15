@@ -1,4 +1,4 @@
-export const categories = ['Health', 'Focus', 'Mood', 'Learning', 'Movement'] as const;
+export const categories = ['Health', 'Focus', 'Mood', 'Learning', 'Movement', 'Other'] as const;
 export const frequencies = ['Daily', 'Weekdays'] as const;
 export interface HabitDraft {
   name: string;

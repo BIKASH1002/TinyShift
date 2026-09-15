@@ -3,23 +3,32 @@ import React, { useState } from 'react';
 import { Habit, RescueReason } from '../types';
 import { reasonLabels } from '../lib/routineEngine';
 import { PageHeader, EmptyState } from '../components/ui';
+import { RescueCoach } from '../components/RescueCoach';
 import { SelectField } from '../components/SelectField';
 interface Props {
   habits: Habit[];
   initialHabitId?: string | null;
   onUseMinimum: (id: string) => Promise<void> | void;
   onSkip: (id: string, reason: RescueReason) => Promise<void> | void;
+  onCoachCompleted: () => Promise<void>;
 }
-export const RescueScreen: React.FC<Props> = ({ habits, initialHabitId, onUseMinimum, onSkip }) => {
-  const available = habits.filter((h) => !h.completedToday && h.statusToday !== 'skipped');
+export const RescueScreen: React.FC<Props> = ({
+  habits,
+  initialHabitId,
+  onUseMinimum,
+  onSkip,
+  onCoachCompleted,
+}) => {
+  const available = habits.filter((h) => !h.completedToday);
   const [id, setId] = useState(initialHabitId || '');
   const [reason, setReason] = useState<RescueReason>('low_energy');
   const [busy, setBusy] = useState(false);
+  const [coachBusy, setCoachBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const habit = available.find((h) => h.id === id) || available[0];
   async function save(skip: boolean) {
-    if (!habit || busy) return;
+    if (!habit || busy || coachBusy) return;
     setBusy(true);
     setError('');
     setMessage('');
@@ -39,6 +48,7 @@ export const RescueScreen: React.FC<Props> = ({ habits, initialHabitId, onUseMin
         editorial
         eyebrow="A gentler way forward"
         title="A smaller step still counts."
+        accent="still counts."
         description="When the original plan feels like too much, make it smaller. Mark it complete after you do it."
       />
       {error && (
@@ -53,40 +63,59 @@ export const RescueScreen: React.FC<Props> = ({ habits, initialHabitId, onUseMin
       )}
       {!habit ? (
         <EmptyState title="Nothing needs rescuing right now.">
-          No pending habits here. You can return to skipped habits on Today whenever you feel ready.
+          Your scheduled habits are complete. A smaller step counts just as much.
         </EmptyState>
       ) : (
         <>
-          <div className="form-grid">
+          <div>
             <SelectField
               label="Habit"
-              disabled={busy}
+              disabled={busy || coachBusy}
               value={habit.id}
               onChange={setId}
               options={available.map((h) => ({ value: h.id, label: h.name }))}
             />
-            <SelectField
-              label="What got in the way?"
-              disabled={busy}
-              value={reason}
-              onChange={(value) => setReason(value as RescueReason)}
-              options={Object.entries(reasonLabels).map(([value, label]) => ({ value, label }))}
-            />
           </div>
+          <RescueCoach
+            key={habit.id}
+            habit={habit}
+            disabled={busy}
+            onBusyChange={setCoachBusy}
+            onCompleted={async () => {
+              try {
+                await onCoachCompleted();
+                setMessage(
+                  'Rescue completed. That counts as a tiny win. You can undo it on Today.',
+                );
+              } finally {
+                setCoachBusy(false);
+              }
+            }}
+          />
           <article className="surface space-y-4">
             <span className="pill">Your tiny version</span>
             <h2 className="text-xl font-bold">{habit.minimumVersion}</h2>
             <p className="text-sm">Instead of: {habit.normalVersion}</p>
+            <SelectField
+              label="What got in the way?"
+              disabled={busy || coachBusy}
+              value={reason}
+              onChange={(value) => setReason(value as RescueReason)}
+              options={Object.entries(reasonLabels).map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
             <div className="action-row">
               <button
-                disabled={busy}
+                disabled={busy || coachBusy}
                 onClick={() => save(false)}
                 className="button button--primary"
               >
                 I completed the tiny version
               </button>
               <button
-                disabled={busy}
+                disabled={busy || coachBusy}
                 onClick={() => save(true)}
                 className="button button--secondary"
               >
@@ -94,8 +123,8 @@ export const RescueScreen: React.FC<Props> = ({ habits, initialHabitId, onUseMin
               </button>
             </div>
             <p className="help-text">
-              Skipping is information, not a failure. Your reason helps us understand what gets in
-              the way.
+              Skipping is information, not a failure. Your reason helps us understand what gets
+              in the way.
             </p>
           </article>
         </>

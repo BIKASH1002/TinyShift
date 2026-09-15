@@ -27,7 +27,7 @@ export const EditHabitScreen: React.FC<{
       <div className="p-5 space-y-3">
         <p role={error ? 'alert' : 'status'}>{error || 'Loading habit...'}</p>
         <button onClick={onClose} className="underline">
-          Back to Today
+          Back to habits
         </button>
       </div>
     );

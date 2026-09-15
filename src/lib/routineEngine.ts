@@ -19,6 +19,7 @@ export interface Activity {
   status: string;
   completion_method: string;
   skip_reason: string | null;
+  rescue_action?: string | null;
 }
 export interface Context {
   energy: 'low' | 'steady' | 'high';

@@ -59,6 +59,7 @@ export const ProfileScreen: React.FC<Props> = ({ onDeleted }) => {
         editorial
         eyebrow="Make yourself at home"
         title="Your profile"
+        accent="profile"
         description="Manage your preferences, reminders and personal information here."
       />
       {loading && <LoadingState label="Loading your profile…" />}

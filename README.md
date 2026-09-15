@@ -7,7 +7,7 @@ a smaller step for difficult days.
 ## What it does
 
 - **Today:** plan around available time and energy, complete habits, and undo today's check-ins.
-- **Rescue:** take a smaller step or record why a habit was skipped.
+- **Rescue:** take a saved tiny step, ask the optional Rescue Coach for a context-aware step of up to 60 seconds, or record a skip.
 - **Adjust:** review patterns from the previous week and accept or reject suggested changes.
 - **Reflect:** view weekly activity and save a personal reflection.
 - **Profile:** edit your display name and photo, configure reminders, export your information,
@@ -75,7 +75,7 @@ security. Never use a service-role or secret key as the public key.
 ### 2. Set up Supabase
 
 For a new project, run `backend/sql/001_profiles.sql` through
-`backend/sql/010_account_privacy.sql`, in filename order, in the Supabase SQL Editor.
+`backend/sql/011_rescue_coach.sql`, in filename order, in the Supabase SQL Editor.
 These are manually applied scripts, not CLI-managed migrations. Do not rerun an
 existing database's setup just to deploy frontend changes.
 
@@ -95,6 +95,7 @@ From `backend/`, replace `YOUR_PROJECT_REF` with your project's reference:
 ```sh
 cd backend
 npx supabase login
+npx supabase functions deploy create-rescue-step --project-ref YOUR_PROJECT_REF --no-verify-jwt --use-api
 npx supabase functions deploy create-habit-draft --project-ref YOUR_PROJECT_REF --no-verify-jwt --use-api
 npx supabase functions deploy create-weekly-review --project-ref YOUR_PROJECT_REF --no-verify-jwt --use-api
 npx supabase functions deploy create-habit-adjustment --project-ref YOUR_PROJECT_REF --no-verify-jwt --use-api
@@ -169,3 +170,26 @@ settings, email delivery or AI responses are correct.
 
 Do not commit real keys, account exports or database dumps. If a secret was ever
 committed, rotate it; adding it to `.gitignore` does not remove it from Git history.
+
+## Rescue Coach
+
+For an existing project with scripts 001-010 applied, apply only
+`backend/sql/011_rescue_coach.sql`, deploy `create-rescue-step`, then deploy the frontend.
+It uses the existing `GEMINI_API_KEY`, `GEMINI_MODEL` and shared 10-per-day AI quota.
+Local code changes do not deploy SQL or Edge Functions.
+
+On Today, select **Too tired or stuck? Open Rescue Coach**, or open Rescue directly.
+Select a habit, describe the immediate obstacle, consent to the displayed data sharing,
+and request a step. Read it, do it, then select **Done - I did this rescue step**.
+A pause suggestion has no completion button. The saved tiny version and explicit skip
+remain available if AI is unavailable or declined.
+
+The sentence is sent to Gemini but is not stored in TinyShift. The confirmed action is
+stored as `habit_logs.rescue_action`, counts as a minimum completion, appears on Today,
+and is included in the existing account export and account deletion cascade. Generation
+never changes a habit or creates a log. Undo works on Today. Date changes, stale habit
+versions and already-completed days are checked again when saving.
+
+Run `node scripts/test-rescue-coach.mjs` and `sh scripts/test-database.sh` for isolated checks.
+Provider output is schema-validated and prompted to respect constraints; suitability and
+real response quality still need live acceptance testing with the deployed model.

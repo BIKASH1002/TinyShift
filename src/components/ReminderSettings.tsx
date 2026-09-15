@@ -1,3 +1,4 @@
+import { PushReminderSettings } from './PushReminderSettings';
 import { userMessage } from '../lib/userMessage';
 import React, { useEffect, useState } from 'react';
 import {
@@ -11,13 +12,17 @@ export const ReminderSettings: React.FC = () => {
     [error, setError] = useState(''),
     [notice, setNotice] = useState('');
   const [revision, setRevision] = useState(0);
+  const [scheduled, setScheduled] = useState(false);
   useEffect(() => {
     let active = true;
     setBusy(true);
     setError('');
     loadReminderPreferences()
       .then((p) => {
-        if (active) setPrefs(p);
+        if (active) {
+          setPrefs(p);
+          setScheduled(p.daily_enabled || p.weekly_enabled);
+        }
       })
       .catch((e) => {
         if (active) setError(userMessage(e));
@@ -37,9 +42,9 @@ export const ReminderSettings: React.FC = () => {
     <section className="surface space-y-4">
       <h2 className="font-bold">Weekly preparation and reminders</h2>
       <p className="text-sm">
-        Reminders appear inside TinyShift, not as phone notifications or emails. They are prepared
-        while the app is closed and appear on Today when you return. AI is only used when you
-        request it.
+        Choose when you would like a nudge. Reminders appear on Today when you return.
+        You can also enable optional push notifications on this device below.
+        AI is only used when you request it.
       </p>
       {error && (
         <p role="alert" className="text-red-800">
@@ -70,6 +75,7 @@ export const ReminderSettings: React.FC = () => {
             setNotice('');
             try {
               await saveReminderPreferences(prefs);
+              setScheduled(prefs.daily_enabled || prefs.weekly_enabled);
               setPrefs({
                 ...prefs,
                 time_zone: prefs.time_zone.trim(),
@@ -164,6 +170,7 @@ export const ReminderSettings: React.FC = () => {
           )}
         </form>
       )}
+      <PushReminderSettings scheduled={scheduled} />
     </section>
   );
 };

@@ -5,6 +5,7 @@ import { userMessage } from './userMessage';
  */
 
 import supabase from './supabaseClient';
+import { disablePush } from './pushService';
 import { Session, User } from '@supabase/supabase-js';
 
 export interface AuthResult<T = null> {
@@ -108,6 +109,7 @@ export async function loginUser(
 
 export async function logoutUser(): Promise<AuthResult> {
   try {
+    await disablePush();
     const { error } = await supabase.auth.signOut();
 
     if (error) {

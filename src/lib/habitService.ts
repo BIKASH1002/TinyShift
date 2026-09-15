@@ -21,6 +21,7 @@ export interface HabitLog {
   completed_at: string | null;
   completion_method: 'normal' | 'minimum';
   skip_reason: RescueReason | null;
+  rescue_action?: string | null;
   created_at: string;
 }
 interface HabitRow {
@@ -238,6 +239,7 @@ async function saveLog(
     completed_at: status === 'done' ? new Date().toISOString() : null,
     completion_method: mode,
     skip_reason: reason,
+    rescue_action: null,
   };
   const { data, error } = await supabase
     .from('habit_logs')

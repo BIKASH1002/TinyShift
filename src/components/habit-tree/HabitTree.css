@@ -1,0 +1,143 @@
+.habit-manager-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.05fr);
+  gap: 28px;
+  align-items: start;
+}
+.habit-tree-panel {
+  position: sticky;
+  top: 24px;
+  min-width: 0;
+  background: #f0f3e8;
+  border: 1px solid #dce4d2;
+  border-radius: 24px;
+  padding: 22px;
+}
+.habit-tree-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+.habit-tree {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+}
+.habit-tree-caption {
+  min-height: 3.2em;
+  margin-top: -12px;
+  text-align: center;
+  font-size: 13px;
+  color: #47603a;
+  overflow-wrap: anywhere;
+}
+.habit-leaf {
+  cursor: pointer;
+  outline: none;
+}
+.habit-leaf--active > path:first-of-type,
+.habit-leaf:focus-visible > path:first-of-type {
+  stroke: #29462d;
+  stroke-width: 3.5;
+}
+.habit-manager-controls {
+  min-width: 0;
+}
+.habit-manager-controls > label {
+  display: block;
+  margin-bottom: 20px;
+}
+.habit-manager-controls input {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
+.habit-manager-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+.habit-manager-item {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  min-width: 0;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+.habit-manager-item:focus-visible {
+  outline: 2px solid #6b8f5d;
+  outline-offset: 2px;
+}
+.habit-manager-item--active {
+  border-color: #8ca777;
+  background: #f5f8f0;
+}
+.habit-manager-item--collapsed {
+  padding-block: 12px;
+}
+.habit-manager-item--expanded {
+  padding-block: 14px;
+}
+.habit-manager-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+.habit-manager-name {
+  flex: 1;
+  min-width: 100px;
+  overflow-wrap: anywhere;
+}
+.habit-manager-item--collapsed .habit-manager-name h2 {
+  margin-bottom: 2px;
+}
+.habit-manager-item--collapsed .habit-manager-name h2,
+.habit-manager-item--collapsed .help-text {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.habit-manager-item .icon-button {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+}
+.habit-manager-item .icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+.habit-manager-confirmation {
+  margin-top: 14px;
+  border-top: 1px solid #e7c9c4;
+  padding-top: 14px;
+}
+.habit-manager-confirmation .action-row {
+  margin-top: 12px;
+}
+@media (max-width: 1000px) {
+  .habit-manager-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .habit-tree-panel {
+    position: static;
+  }
+  .habit-tree {
+    max-width: 480px;
+    margin-inline: auto;
+  }
+}
+@media (max-width: 700px) {
+  .habit-tree-panel {
+    padding: 18px;
+  }
+  .habit-manager-layout {
+    gap: 20px;
+  }
+}
