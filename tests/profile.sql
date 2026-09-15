@@ -1,9 +1,9 @@
 -- Run after the existing fixtures; the auth stub gains fields used by the signup trigger.
 alter table auth.users
-  add column email text;
+  add column if not exists email text;
 
 alter table auth.users
-  add column raw_user_meta_data jsonb;
+  add column if not exists raw_user_meta_data jsonb;
 
 \i backend/sql/001_profiles.sql
 \i backend/sql/001_profiles.sql
@@ -14,7 +14,9 @@ set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
 
 insert into public.profiles (id, full_name)
-  values (auth.uid (), 'First name');
+  values (auth.uid (), 'First name')
+  on conflict (id)
+    do update set full_name = excluded.full_name;
 
 update
   public.profiles
@@ -60,9 +62,11 @@ begin
     select
       1
     from
-      public.profiles) then
-  raise exception 'Profile leaked across accounts';
-end if;
+      public.profiles
+    where
+      id = '00000000-0000-0000-0000-000000000001') then
+    raise exception 'Profile leaked across accounts';
+  end if;
   update
     public.profiles
   set

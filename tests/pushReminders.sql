@@ -1,5 +1,17 @@
 -- Isolated fixtures only; no external push requests.
-create role service_role;
+do $$
+begin
+  if not exists (
+    select
+      1
+    from
+      pg_roles
+    where
+      rolname = 'service_role') then
+    create role service_role;
+  end if;
+end
+$$;
 \i backend/sql/012_push_reminders.sql
 \i backend/sql/012_push_reminders.sql
 begin;

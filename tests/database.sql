@@ -5,8 +5,14 @@ create role authenticated;
 
 create role anon;
 
+create role service_role;
+
+create extension if not exists pgcrypto;
+
 create table auth.users (
-  id uuid primary key
+  id uuid primary key,
+  email text,
+  raw_user_meta_data jsonb
 );
 
 create function auth.uid ()
@@ -22,13 +28,27 @@ grant usage on schema auth to authenticated;
 
 grant execute on function auth.uid () to authenticated;
 
+-- Apply the production schema in migration order before running feature tests.
+\i backend/sql/001_profiles.sql
 \i backend/sql/002_habits.sql
+\i backend/sql/003_ai_suggestions.sql
+\i backend/sql/004_weekly_reflections.sql
 \i backend/sql/005_adaptive_habits.sql
 \i backend/sql/006_weekly_planning.sql
 \i backend/sql/006_weekly_planning.sql
 \i backend/sql/007_ai_request_limits.sql
 \i backend/sql/007_ai_request_limits.sql
+\i backend/sql/008_ai_habit_adjustments.sql
+\i backend/sql/009_scheduled_reminders.sql
+\i backend/sql/010_account_privacy.sql
+\i backend/sql/011_rescue_coach.sql
+\i backend/sql/012_push_reminders.sql
+
+-- Supabase supplies these grants for the authenticated API role. Keep the
+-- isolated fixture explicit so its permissions match the production client surface.
+grant select, insert, update on public.profiles to authenticated;
 grant select, insert, update, delete on public.habits, public.habit_logs to authenticated;
+grant select, insert, update, delete on public.ai_suggestions, public.weekly_reflections to authenticated;
 
 insert into auth.users
 values
