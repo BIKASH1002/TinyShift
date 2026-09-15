@@ -173,8 +173,10 @@ Choose a model available to your Gemini account. Supabase supplies its own runti
 credentials; account deletion uses the server-only service-role credential.
 Never put these private credentials in frontend configuration.
 
-The older `generate-routine-suggestions` function is not used by the current UI.
-Do not deploy it as part of this setup; review any existing deployment separately.
+The retired routine-suggestions function and its old Refresh screen are no longer
+part of the repository or deployment. Keep the `ai_suggestions` table migration
+for compatibility with existing account exports; do not deploy an old copy of the
+retired function.
 Without Gemini configuration, manual habit creation and rule-based planning still work.
 
 ### 4. Start the app
