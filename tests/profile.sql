@@ -9,14 +9,17 @@ alter table auth.users
 \i backend/sql/001_profiles.sql
 grant select, insert, update on public.profiles to authenticated;
 
+-- The full fixture creates profiles through the auth signup trigger. Remove the
+-- first fixture row so this test still exercises a missing-profile insert.
+delete from public.profiles
+where id = '00000000-0000-0000-0000-000000000001';
+
 set role authenticated;
 
 set request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
 
 insert into public.profiles (id, full_name)
-  values (auth.uid (), 'First name')
-  on conflict (id)
-    do update set full_name = excluded.full_name;
+  values (auth.uid (), 'First name');
 
 update
   public.profiles
@@ -65,8 +68,8 @@ begin
       public.profiles
     where
       id = '00000000-0000-0000-0000-000000000001') then
-    raise exception 'Profile leaked across accounts';
-  end if;
+  raise exception 'Profile leaked across accounts';
+end if;
   update
     public.profiles
   set

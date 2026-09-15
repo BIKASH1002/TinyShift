@@ -80,6 +80,52 @@ $$;
 insert into public.habit_logs (habit_id, user_id, log_date, status, completion_method, skip_reason)
   values ('10000000-0000-0000-0000-000000000001', auth.uid (), current_date, 'skipped', 'normal', 'forgot');
 
+do $$
+begin
+  begin
+    insert into public.habit_logs (habit_id, user_id, log_date, status, completion_method)
+      values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', date '2099-01-01', 'done', 'normal');
+    raise exception 'Cross-account habit log insert succeeded';
+  exception
+    when insufficient_privilege then
+      null;
+  end;
+  reset role;
+  begin
+    insert into public.habit_logs (habit_id, user_id, log_date, status, completion_method)
+      values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', date '2099-01-01', 'done', 'normal');
+    raise exception 'Habit owner foreign key was bypassed';
+  exception
+    when foreign_key_violation then
+      null;
+  end;
+  set role authenticated;
+  set request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
+  begin
+    update public.habit_logs
+    set log_date = current_date - 1
+    where habit_id = '10000000-0000-0000-0000-000000000001'
+      and log_date = current_date;
+    raise exception 'Habit log identity changed';
+  exception
+    when others then
+      if sqlerrm <> 'A habit log identity cannot be changed.' then
+        raise;
+      end if;
+  end;
+  begin
+    update public.habit_logs
+    set status = 'done', completed_at = now(), skip_reason = 'forgot'
+    where habit_id = '10000000-0000-0000-0000-000000000001'
+      and log_date = current_date;
+    raise exception 'Contradictory habit log state succeeded';
+  exception
+    when check_violation then
+      null;
+  end;
+end
+$$;
+
 set request.jwt.claim.sub = '00000000-0000-0000-0000-000000000002';
 
 do $$

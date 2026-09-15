@@ -43,6 +43,8 @@ grant execute on function auth.uid () to authenticated;
 \i backend/sql/010_account_privacy.sql
 \i backend/sql/011_rescue_coach.sql
 \i backend/sql/012_push_reminders.sql
+\i backend/sql/013_habit_log_integrity.sql
+\i backend/sql/013_habit_log_integrity.sql
 
 -- Supabase supplies these grants for the authenticated API role. Keep the
 -- isolated fixture explicit so its permissions match the production client surface.

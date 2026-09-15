@@ -1,4 +1,3 @@
--- Isolated fixtures only; no external push requests.
 do $$
 begin
   if not exists (

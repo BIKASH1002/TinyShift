@@ -97,8 +97,10 @@ return after confirming you no longer need the unsaved values.
 
 ## Before public release
 
-- Verify all ten numbered database scripts, access policies and four current Edge
-  Functions in the hosted project. Review any deployed legacy endpoints separately.
+- Verify the required numbered database scripts (`001` through `011` and `013`),
+  plus `012_push_reminders.sql` if push is enabled, along with access policies and
+  the current Edge Functions in the hosted project. Review any deployed legacy
+  endpoints separately.
 - Verify production Site URL, recovery redirects, email verification, SMTP delivery,
   password policy and expired/reused recovery links.
 - Enable and monitor Cron if reminders are offered. Check scheduler errors and opt-out.
@@ -108,6 +110,37 @@ return after confirming you no longer need the unsaved values.
   controls and abuse prevention. Verify HTTPS and appropriate hosting security headers.
 - Run dependency/security checks and representative load tests before public launch.
   Local implementation alone is not production verification.
+
+## Optional browser push release checks
+
+Run these checks only if browser push is part of the release. Push is optional;
+in-app reminders must continue to work when it is not configured.
+
+1. Confirm `012_push_reminders.sql` has been applied, the `send-push-reminders`
+   function is deployed, and its five required secrets are present:
+   `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT`,
+   `PUSH_WORKER_SECRET`, and `SUPABASE_SERVICE_ROLE_KEY`.
+2. Confirm Vercel has `EXPO_PUBLIC_WEB_PUSH_KEY` set to the matching public VAPID
+   key in every environment where push should be available. Do not add private
+   VAPID or service-role values to Vercel.
+3. Confirm Vault contains `tinyshift_push_worker_url` and
+   `tinyshift_push_worker_secret`, and that `enable_push_cron.sql` created the
+   `tinyshift-push-delivery` job. Keep the routine schedule job enabled too.
+4. On HTTPS, save a daily reminder in Profile, enable push on a disposable account,
+   and verify the browser shows the subscription as enabled. Repeat on a second
+   browser/device; each device should have its own subscription.
+5. Trigger a disposable daily reminder and verify a generic notification appears.
+   It must not contain a habit name, context sentence, or other personal detail.
+6. Open the notification and verify Today opens. Test the Rescue and weekly Review
+   actions, then verify the app does not duplicate or overwrite unsaved forms.
+7. Turn push off on this device and verify another device remains enabled. Use
+   "Turn off on all devices" and verify all subscriptions are removed.
+8. Test a blocked permission, an offline worker attempt, an expired reminder, a
+   dismissed reminder, and a completed habit. None should produce a notification,
+   and failed jobs should stop after retries.
+9. Sign out and switch to a second account on the same browser. The first account's
+   local subscription must be removed and must not receive the second account's
+   notifications.
 
 ## Automated browser checks
 
@@ -205,12 +238,12 @@ The old Gemini service remains in the repository but is not used by Today or Adj
    It does not alter your existing habits and refuses duplicate seeding.
 4. Open Adjust. Expected:
 
-| Habit | Last completed week | Expected proposal |
-| --- | --- | --- |
-| [TEST] Read | 3 completed, all tiny; 4 unlogged | Normal target becomes Read one page |
-| [TEST] Stretch | 3 skips due to forgetting; 4 unlogged | Cue becomes Immediately after lunch |
-| [TEST] Journal | 3 normal completions; 4 unlogged | No change |
-| [TEST] New habit | 0 prior-week opportunities | Insufficient history; no change |
+| Habit            | Last completed week                   | Expected proposal                   |
+| ---------------- | ------------------------------------- | ----------------------------------- |
+| [TEST] Read      | 3 completed, all tiny; 4 unlogged     | Normal target becomes Read one page |
+| [TEST] Stretch   | 3 skips due to forgetting; 4 unlogged | Cue becomes Immediately after lunch |
+| [TEST] Journal   | 3 normal completions; 4 unlogged      | No change                           |
+| [TEST] New habit | 0 prior-week opportunities            | Insufficient history; no change     |
 
 Missing records must not be displayed as skips. Normal and tiny completions both count as completed.
 Today uses a rolling seven-day history, so its history-based recommendation may differ from the
@@ -321,6 +354,7 @@ Manual creation, editing, and undo do not depend on AI setup.
    The gateway flag does not make draft generation anonymous: the function itself validates
    the bearer token with Supabase Auth getUser before reserving quota or calling Gemini.
    Deploy the repository function and its shared validation module together.
+
 4. Restart/rebuild the frontend if its public Supabase URL or anon key changed.
 5. Use a test account and a non-sensitive goal. Only the goal description is sent to Gemini;
    existing habits, completion history, and reflections are not included.
@@ -371,6 +405,7 @@ reserve_habit_draft, so draft creation and weekly reviews share the same quota.
 
    The endpoint validates the bearer token with Supabase Auth getUser. It queries the caller's
    rows with the caller's token and explicit user_id filters, not a service-role client.
+
 3. Redeploy create-habit-draft to update its shared-quota error wording, then rebuild/restart
    the frontend. An older deployment still enforces the same quota but describes it as drafts only.
 
@@ -443,6 +478,7 @@ No background jobs, reminders, account-lifecycle additions, or automatic habit c
 
    The function itself verifies the caller with Auth getUser and accesses only that caller's rows.
    Include both shared modules (habitAdjustment.ts and weeklyReview.ts) in deployment.
+
 4. Restart/rebuild the frontend. Older AI endpoints still enforce the same shared quota;
    redeploy them too if you want the updated wording describing all AI features.
 
@@ -671,9 +707,10 @@ support procedures must be reviewed before public release.
 
 Check the public-key validator, CI workflow and render-error fallback. No service-role or Gemini
 key may appear in a browser bundle. The build now allowlists only the public Supabase URL/key;
-unrelated VITE_/EXPO_PUBLIC_ variables are not injected. Run the full local checks and then the
+unrelated VITE*/EXPO_PUBLIC* variables are not injected. Run the full local checks and then the
 end-to-end workflow in staging. Hosted Auth emails, real deletion, browser interaction, live AI
 quality, Cron operation and production security headers remain manually unverified.
+
 # Plain-language copy checks
 
 1. Open Create a habit, Adjust, Reflect, and Profile. Check that labels make sense without technical knowledge.
@@ -694,6 +731,7 @@ npx supabase functions deploy delete-account --project-ref zmxtzoqsiykasrtvekqa 
 
 Restart the local app or rebuild/redeploy the frontend to see its updated text.
 No database changes are required for this naming cleanup.
+
 # Redesigned interface
 
 Start with Current interface checks at the top of this guide,

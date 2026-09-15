@@ -21,8 +21,9 @@ are not treated as skipped days. AI adjustments need enough recorded activity to
 produce a suggestion and can recommend leaving a habit unchanged.
 
 Reminders appear inside TinyShift. Opt-in scheduled processing can prepare weekly
-suggestions while the app is closed; it does not send push notifications or reminder
-emails, and does not generate AI suggestions in the background.
+suggestions while the app is closed. Optional browser push reminders can also notify
+the user when the app is closed after the push setup below is completed. TinyShift
+does not send reminder emails or generate AI suggestions in the background.
 
 ## Architecture
 
@@ -75,9 +76,11 @@ security. Never use a service-role or secret key as the public key.
 ### 2. Set up Supabase
 
 For a new project, run `backend/sql/001_profiles.sql` through
-`backend/sql/011_rescue_coach.sql`, in filename order, in the Supabase SQL Editor.
-These are manually applied scripts, not CLI-managed migrations. Do not rerun an
-existing database's setup just to deploy frontend changes.
+`backend/sql/011_rescue_coach.sql`, then run
+`backend/sql/013_habit_log_integrity.sql` in the Supabase SQL Editor. If browser
+push is included, run `backend/sql/012_push_reminders.sql` before 013. These are
+manually applied scripts, not CLI-managed migrations. Do not rerun an existing
+database's setup just to deploy frontend changes.
 
 Enable email/password authentication. Set the Auth Site URL and allow the local
 password-recovery redirect `http://localhost:3000/?account=recovery`.
@@ -86,6 +89,63 @@ Configure email verification and delivery for your environment.
 For scheduled reminders and weekly preparation, enable Supabase Cron, then run
 `backend/sql/enable_routine_cron.sql` separately. The job runs every five minutes.
 Do not run `manual_test_history.sql` against real user data.
+
+#### Optional browser push reminders
+
+Push reminders are optional. In-app reminders work without this setup. To enable
+push for a hosted release:
+
+1. Generate a VAPID key pair and a worker secret locally:
+
+```sh
+node scripts/generate-push-keys.mjs
+```
+
+Keep the printed private key and worker secret out of Git. The public key is
+safe to expose to the browser.
+
+2. Run `backend/sql/012_push_reminders.sql`, then
+   `backend/sql/013_habit_log_integrity.sql`. The first creates the subscription
+   and delivery queues; the second hardens habit-log ownership and state rules.
+
+3. Deploy the push worker from `backend/`:
+
+```sh
+npx supabase functions deploy send-push-reminders --project-ref YOUR_PROJECT_REF --no-verify-jwt --use-api
+```
+
+4. Add these Supabase Edge Function secrets:
+
+- `WEB_PUSH_PUBLIC_KEY`: generated public VAPID key
+- `WEB_PUSH_PRIVATE_KEY`: generated private VAPID key
+- `WEB_PUSH_SUBJECT`: an operator contact such as `mailto:you@example.com`
+- `PUSH_WORKER_SECRET`: generated worker secret
+- `SUPABASE_SERVICE_ROLE_KEY`: the project service-role key
+
+The service-role key belongs only in Supabase Function secrets, never in
+`backend/.env`, Vercel, browser code, or Git.
+
+5. Add the public key to `backend/.env` and to the Vercel Preview/Production
+   environment variables:
+
+```dotenv
+EXPO_PUBLIC_WEB_PUSH_KEY=your-public-vapid-key
+```
+
+Restart or redeploy Vite after changing it. The other Vercel variables remain
+the public Supabase URL and anon/publishable key.
+
+6. Enable `pg_net`, Supabase Cron, and Vault. Create these Vault secrets:
+
+- `tinyshift_push_worker_url`: `https://YOUR_PROJECT.supabase.co/functions/v1/send-push-reminders`
+- `tinyshift_push_worker_secret`: the same value as `PUSH_WORKER_SECRET`
+
+Then run `backend/sql/enable_push_cron.sql` once. It invokes the worker every
+minute; the worker only sends queued, unexpired reminders and retries failures.
+
+If push is not part of the release, leave `EXPO_PUBLIC_WEB_PUSH_KEY` empty and do
+not run the push migration, worker deployment, or push cron script. The Profile
+screen will continue to support in-app reminders without offering device push.
 
 ### 3. Deploy the backend functions
 
