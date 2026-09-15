@@ -197,7 +197,7 @@ with sync_playwright() as p:
     assert requests.count(("GET", "/rest/v1/habit_logs")) == 1, "Duplicate initial activity reads"
     page.set_viewport_size({"width": 1440, "height": 1000})
     layout(page, "today-desktop")
-    page.get_by_role("button", name="Too tired or stuck? Open Rescue Coach", exact=True).click()
+    page.get_by_role("button", name="Open Rescue Coach", exact=True).click()
     coach = page.get_by_role("region", name="Rescue Coach", exact=True)
     expect(coach).to_be_visible()
     context_input = coach.get_by_label("What is making this habit difficult right now?")
